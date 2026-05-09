@@ -2,30 +2,48 @@ import { auth } from "@/services/firebase";
 import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Button, HelperText, Text, TextInput } from "react-native-paper";
 
 export default function ResetPasswordScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const router = useRouter();
 
+  const translateError = (code: string) => {
+    switch (code) {
+      case "auth/invalid-email":
+        return "Niepoprawny format adresu e-mail.";
+      case "auth/user-not-found":
+        return "Nie znaleziono użytkownika z tym adresem e-mail.";
+      case "auth/too-many-requests":
+        return "Zbyt wiele próśb. Spróbuj ponownie później.";
+      default:
+        return "Wystąpił błąd. Spróbuj ponownie.";
+    }
+  };
+
   const handleReset = async () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
     if (!email) {
-      Alert.alert("Błąd", "Podaj adres email");
+      setErrorMsg("Podaj adres email.");
       return;
     }
 
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, email);
-      Alert.alert(
-        "Wysłano!",
-        "Sprawdź swoją skrzynkę mailową, aby zresetować hasło.",
-        [{ text: "OK", onPress: () => router.back() }],
-      );
+      setSuccessMsg("Instrukcje zostały wysłane na Twój e-mail.");
+      // Opcjonalnie: automatyczny powrót po 3 sekundach
+      setTimeout(() => {
+        router.back();
+      }, 3000);
     } catch (error: any) {
-      Alert.alert("Błąd", error.message);
+      setErrorMsg(translateError(error.code));
     } finally {
       setLoading(false);
     }
@@ -43,17 +61,32 @@ export default function ResetPasswordScreen() {
       <TextInput
         label="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          setErrorMsg(null);
+        }}
         mode="outlined"
         style={styles.input}
         keyboardType="email-address"
         autoCapitalize="none"
+        error={!!errorMsg}
+        outlineColor="#006494"
+        activeOutlineColor="#006494"
       />
+
+      {/* Komunikat o błędzie */}
+      <HelperText type="error" visible={!!errorMsg} style={styles.message}>
+        {errorMsg}
+      </HelperText>
+
+      {/* Komunikat o sukcesie */}
+      {successMsg && <Text style={styles.successText}>{successMsg}</Text>}
 
       <Button
         mode="contained"
         onPress={handleReset}
         loading={loading}
+        disabled={loading || !!successMsg}
         style={styles.mainButton}
       >
         Wyślij link
@@ -62,8 +95,7 @@ export default function ResetPasswordScreen() {
       <Button
         mode="text"
         onPress={() => router.back()}
-        rippleColor="transparent"
-        theme={{ colors: { primaryContainer: "transparent" } }}
+        style={styles.backButton}
       >
         Wróć do logowania
       </Button>
@@ -85,6 +117,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   subtitle: { textAlign: "center", marginBottom: 30, color: "#666" },
-  input: { marginBottom: 12 },
+  input: { marginBottom: 4 },
+  message: { textAlign: "center", marginBottom: 8 },
+  successText: {
+    color: "#2e7d32",
+    textAlign: "center",
+    marginBottom: 16,
+    fontWeight: "500",
+  },
   mainButton: { marginTop: 10, paddingVertical: 4 },
+  backButton: { marginTop: 10 },
 });

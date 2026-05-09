@@ -2,23 +2,42 @@ import { auth } from "@/services/firebase";
 import { useRouter } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Button, HelperText, Text, TextInput } from "react-native-paper";
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
 
+  const translateError = (code: string) => {
+    switch (code) {
+      case "auth/email-already-in-use":
+        return "Ten adres e-mail jest już przypisany do innego konta.";
+      case "auth/invalid-email":
+        return "Niepoprawny format adresu e-mail.";
+      case "auth/weak-password":
+        return "Hasło jest zbyt słabe (min. 6 znaków).";
+      case "auth/operation-not-allowed":
+        return "Rejestracja e-mail/hasło jest wyłączona w Firebase.";
+      default:
+        return "Wystąpił błąd podczas rejestracji. Spróbuj ponownie.";
+    }
+  };
+
   const handleRegister = async () => {
-    if (!email || !password) {
-      Alert.alert("Błąd", "Wypełnij wszystkie pola");
+    setErrorMsg(null);
+
+    if (!email || !password || !confirmPassword) {
+      setErrorMsg("Wypełnij wszystkie pola.");
       return;
     }
+
     if (password !== confirmPassword) {
-      Alert.alert("Błąd", "Hasła nie są identyczne");
+      setErrorMsg("Hasła nie są identyczne.");
       return;
     }
 
@@ -26,7 +45,7 @@ export default function RegisterScreen() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
-      Alert.alert("Błąd rejestracji", error.message);
+      setErrorMsg(translateError(error.code));
     } finally {
       setLoading(false);
     }
@@ -41,30 +60,46 @@ export default function RegisterScreen() {
       <TextInput
         label="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          setErrorMsg(null);
+        }}
         mode="outlined"
         style={styles.input}
         keyboardType="email-address"
         autoCapitalize="none"
+        error={!!errorMsg && errorMsg.includes("e-mail")}
       />
 
       <TextInput
         label="Hasło"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          setErrorMsg(null);
+        }}
         mode="outlined"
         secureTextEntry
         style={styles.input}
+        error={!!errorMsg && errorMsg.includes("Hasło")}
       />
 
       <TextInput
         label="Powtórz hasło"
         value={confirmPassword}
-        onChangeText={setConfirmPassword}
+        onChangeText={(text) => {
+          setConfirmPassword(text);
+          setErrorMsg(null);
+        }}
         mode="outlined"
         secureTextEntry
         style={styles.input}
+        error={!!errorMsg && errorMsg.includes("identyczne")}
       />
+
+      <HelperText type="error" visible={!!errorMsg} style={styles.errorText}>
+        {errorMsg}
+      </HelperText>
 
       <Button
         mode="contained"
@@ -79,7 +114,6 @@ export default function RegisterScreen() {
         mode="text"
         onPress={() => router.back()}
         rippleColor="transparent"
-        theme={{ colors: { primaryContainer: "transparent" } }}
       >
         Masz już konto? Zaloguj się
       </Button>
@@ -100,6 +134,10 @@ const styles = StyleSheet.create({
     color: "#34656e",
     fontWeight: "bold",
   },
-  input: { marginBottom: 12 },
+  input: { marginBottom: 4 },
+  errorText: {
+    textAlign: "center",
+    marginBottom: 8,
+  },
   mainButton: { marginTop: 10, paddingVertical: 4 },
 });

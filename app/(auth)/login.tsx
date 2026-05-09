@@ -2,22 +2,44 @@ import { auth } from "@/services/firebase";
 import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { StyleSheet, View } from "react-native";
+import { Button, HelperText, Text, TextInput } from "react-native-paper";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
 
+  const translateError = (code: string) => {
+    switch (code) {
+      case "auth/invalid-email":
+        return "Niepoprawny format adresu e-mail.";
+      case "auth/user-not-found":
+      case "auth/wrong-password":
+      case "auth/invalid-credential":
+        return "Błędny e-mail lub hasło.";
+      case "auth/too-many-requests":
+        return "Zbyt wiele nieudanych prób. Spróbuj później.";
+      default:
+        return "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.";
+    }
+  };
+
   const handleLogin = async () => {
-    if (!email || !password) return;
+    if (!email || !password) {
+      setErrorMsg("Wprowadź e-mail i hasło.");
+      return;
+    }
+
     setLoading(true);
+    setErrorMsg(null);
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
-      Alert.alert("Błąd logowania", error.message);
+      setErrorMsg(translateError(error.code));
     } finally {
       setLoading(false);
     }
@@ -32,24 +54,36 @@ export default function LoginScreen() {
       <TextInput
         label="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          if (errorMsg) setErrorMsg(null);
+        }}
         mode="outlined"
         style={styles.input}
         keyboardType="email-address"
         outlineColor="#006494"
         activeOutlineColor="#006494"
+        error={!!errorMsg}
       />
 
       <TextInput
         label="Hasło"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(text) => {
+          setPassword(text);
+          if (errorMsg) setErrorMsg(null);
+        }}
         mode="outlined"
         secureTextEntry
         style={styles.input}
         outlineColor="#34656e"
         activeOutlineColor="#34656e"
+        error={!!errorMsg}
       />
+
+      <HelperText type="error" visible={!!errorMsg} style={styles.errorText}>
+        {errorMsg}
+      </HelperText>
 
       <Button
         mode="contained"
@@ -60,13 +94,18 @@ export default function LoginScreen() {
         Zaloguj się
       </Button>
 
-      <Button onPress={() => router.push("/register")}>
-        Nie masz konta? Zarejestruj się
-      </Button>
+      <View style={styles.footer}>
+        <Button onPress={() => router.push("/register")}>
+          Nie masz konta? Zarejestruj się
+        </Button>
 
-      <Button onPress={() => router.push("/reset-password")}>
-        Zapomniałeś hasła?
-      </Button>
+        <Button
+          onPress={() => router.push("/reset-password")}
+          labelStyle={styles.forgotPass}
+        >
+          Zapomniałeś hasła?
+        </Button>
+      </View>
     </View>
   );
 }
@@ -84,6 +123,18 @@ const styles = StyleSheet.create({
     color: "#34656e",
     fontWeight: "bold",
   },
-  input: { marginBottom: 12 },
-  button: { marginTop: 12, paddingVertical: 4 },
+  input: { marginBottom: 4 },
+  errorText: {
+    marginBottom: 8,
+    fontSize: 14,
+    textAlign: "center",
+  },
+  button: { marginTop: 8, paddingVertical: 4 },
+  footer: {
+    marginTop: 20,
+  },
+  forgotPass: {
+    fontSize: 12,
+    color: "#666",
+  },
 });
