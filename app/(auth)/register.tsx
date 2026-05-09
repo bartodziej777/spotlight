@@ -1,23 +1,32 @@
 import { auth } from "@/services/firebase";
 import { useRouter } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { Button, Text, TextInput } from "react-native-paper";
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async () => {
-    if (!email || !password) return;
+  const handleRegister = async () => {
+    if (!email || !password) {
+      Alert.alert("Błąd", "Wypełnij wszystkie pola");
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Błąd", "Hasła nie są identyczne");
+      return;
+    }
+
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await createUserWithEmailAndPassword(auth, email, password);
     } catch (error: any) {
-      Alert.alert("Błąd logowania", error.message);
+      Alert.alert("Błąd rejestracji", error.message);
     } finally {
       setLoading(false);
     }
@@ -25,8 +34,8 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text variant="headlineLarge" style={styles.title}>
-        Spotlight
+      <Text variant="headlineMedium" style={styles.title}>
+        Stwórz konto
       </Text>
 
       <TextInput
@@ -36,8 +45,7 @@ export default function LoginScreen() {
         mode="outlined"
         style={styles.input}
         keyboardType="email-address"
-        outlineColor="#006494"
-        activeOutlineColor="#006494"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -47,25 +55,33 @@ export default function LoginScreen() {
         mode="outlined"
         secureTextEntry
         style={styles.input}
-        outlineColor="#34656e"
-        activeOutlineColor="#34656e"
+      />
+
+      <TextInput
+        label="Powtórz hasło"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        mode="outlined"
+        secureTextEntry
+        style={styles.input}
       />
 
       <Button
         mode="contained"
-        onPress={handleLogin}
+        onPress={handleRegister}
         loading={loading}
-        style={styles.button}
+        style={styles.mainButton}
       >
-        Zaloguj się
+        Zarejestruj się
       </Button>
 
-      <Button onPress={() => router.push("/register")}>
-        Nie masz konta? Zarejestruj się
-      </Button>
-
-      <Button onPress={() => router.push("/reset-password")}>
-        Zapomniałeś hasła?
+      <Button
+        mode="text"
+        onPress={() => router.back()}
+        rippleColor="transparent"
+        theme={{ colors: { primaryContainer: "transparent" } }}
+      >
+        Masz już konto? Zaloguj się
       </Button>
     </View>
   );
@@ -80,10 +96,10 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: "center",
-    marginBottom: 40,
+    marginBottom: 30,
     color: "#34656e",
     fontWeight: "bold",
   },
   input: { marginBottom: 12 },
-  button: { marginTop: 12, paddingVertical: 4 },
+  mainButton: { marginTop: 10, paddingVertical: 4 },
 });
