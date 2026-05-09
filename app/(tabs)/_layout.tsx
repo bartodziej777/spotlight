@@ -1,9 +1,8 @@
 import { authService } from "@/services/auth";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Appbar, Menu } from "react-native-paper";
-// Importujemy zestaw ikon standardowy dla Expo
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TabsLayout() {
   const [visible, setVisible] = useState(false);
@@ -26,7 +25,6 @@ export default function TabsLayout() {
           visible={visible}
           onDismiss={closeMenu}
           anchor={
-            /* Ikona profilu w nagłówku może zostać jako Avatar lub też zmieniona na zwykłą ikonę */
             <Appbar.Action
               icon="account-circle"
               color="#34656e"
@@ -57,7 +55,7 @@ export default function TabsLayout() {
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: "#006494",
-          tabBarInactiveTintColor: "#707070", // Kolor nieaktywnych ikon
+          tabBarInactiveTintColor: "#707070",
           tabBarStyle: { backgroundColor: "#ffffff" },
         }}
       >
@@ -66,7 +64,6 @@ export default function TabsLayout() {
           options={{
             title: "Feed",
             tabBarIcon: ({ color, size }) => (
-              /* Używamy czystej ikony bez tła */
               <MaterialCommunityIcons
                 name="newspaper-variant-outline"
                 color={color}

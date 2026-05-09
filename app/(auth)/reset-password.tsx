@@ -38,7 +38,6 @@ export default function ResetPasswordScreen() {
     try {
       await sendPasswordResetEmail(auth, email);
       setSuccessMsg("Instrukcje zostały wysłane na Twój e-mail.");
-      // Opcjonalnie: automatyczny powrót po 3 sekundach
       setTimeout(() => {
         router.back();
       }, 3000);
@@ -74,12 +73,10 @@ export default function ResetPasswordScreen() {
         activeOutlineColor="#006494"
       />
 
-      {/* Komunikat o błędzie */}
       <HelperText type="error" visible={!!errorMsg} style={styles.message}>
         {errorMsg}
       </HelperText>
 
-      {/* Komunikat o sukcesie */}
       {successMsg && <Text style={styles.successText}>{successMsg}</Text>}
 
       <Button
