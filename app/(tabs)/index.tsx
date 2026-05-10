@@ -1,51 +1,75 @@
 import ArticleCard from "@/components/ArticleCard";
 import { useAuth } from "@/context/AuthContext";
-import { fetchNews } from "@/services/newsApi"; // Pamiętasz nasz serwis GNews?
+import { fetchNews } from "@/services/newsApi";
 import { getUserCategories } from "@/services/userService";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { FlatList, ScrollView, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { ActivityIndicator, Chip, Searchbar, Text } from "react-native-paper";
 
-const DEFAULT_CATEGORIES = [
-  "Technologia",
-  "Kosmos",
-  "Sport",
-  "Biznes",
-  "Polityka",
-];
+interface GNewsArticle {
+  title: string;
+  description: string;
+  image: string;
+  publishedAt: string;
+  source: {
+    name: string;
+  };
+  url: string;
+}
 
 export default function FeedScreen() {
   const { user } = useAuth();
+  const router = useRouter();
+
   const [searchQuery, setSearchQuery] = useState("");
-  //change to categories from firestore
-  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [articles, setArticles] = useState([]);
+  const [articles, setArticles] = useState<GNewsArticle[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (user) {
       getUserCategories(user.uid).then(setCategories);
     }
   }, [user]);
-  const handleSearch = async (query: string, isCategory = false) => {
-    setLoading(true);
-    if (!isCategory) setSelectedCategory(null);
 
+  const loadNews = async (query: string) => {
+    if (!query) return;
+    setArticles([]);
+    setLoading(true);
     const results = await fetchNews(query);
     setArticles(results);
     setLoading(false);
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    const query = selectedCategory || searchQuery || "Polska";
+    const results = await fetchNews(query);
+    setArticles(results);
+    setRefreshing(false);
+  };
+
   return (
     <View style={styles.container}>
       <Searchbar
-        placeholder="Wpisz hasło do wyszukania artykułu"
+        placeholder="Wpisz hasło..."
         onChangeText={setSearchQuery}
         value={searchQuery}
-        onSubmitEditing={() => handleSearch(searchQuery)}
+        onSubmitEditing={() => {
+          setSelectedCategory(null);
+          loadNews(searchQuery);
+        }}
         style={styles.searchBar}
-        elevation={1}
+        elevation={0}
       />
 
       <View>
@@ -60,7 +84,8 @@ export default function FeedScreen() {
               selected={selectedCategory === cat}
               onPress={() => {
                 setSelectedCategory(cat);
-                handleSearch(cat, true);
+                setSearchQuery(""); // Czyścimy searchbar
+                loadNews(cat);
               }}
               style={[
                 styles.chip,
@@ -80,67 +105,65 @@ export default function FeedScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ flex: 1 }} color="#34656e" />
-      ) : articles.length > 0 ? (
+        <ActivityIndicator style={styles.loader} color="#34656e" size="large" />
+      ) : (
         <FlatList
           data={articles}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({ item }) => (
-            <ArticleCard article={item} onPress={() => {}} />
+            <ArticleCard
+              article={item}
+              onPress={() =>
+                router.push({
+                  pathname: "/article-details",
+                  params: { url: item.url, title: item.title },
+                })
+              }
+            />
           )}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {searchQuery || selectedCategory
+                  ? "Brak wyników dla tego hasła."
+                  : "Wybierz kategorię powyżej, aby zacząć."}
+              </Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#34656e"
+            />
+          }
+          contentContainerStyle={styles.listContent}
         />
-      ) : (
-        <View style={styles.emptyState}>
-          <Text variant="bodyLarge" style={styles.emptyText}>
-            Wybierz kategorię lub wpisz hasło, aby wyświetlić najnowsze
-            wiadomości.
-          </Text>
-        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: "#effafb" },
+  searchBar: { margin: 16, borderRadius: 28, backgroundColor: "#d9e7e9" },
+  categoriesScroll: { paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
+  chip: { borderRadius: 20, borderColor: "#34656e" },
+  chipSelected: { backgroundColor: "#34656e" },
+  chipText: { color: "#34656e" },
+  chipTextSelected: { color: "#ffffff" },
+  loader: { flex: 1, justifyContent: "center" },
+  listContent: { paddingBottom: 20 },
+  emptyContainer: {
     flex: 1,
-    backgroundColor: "#effafb",
-  },
-  searchBar: {
-    margin: 16,
-    borderRadius: 28,
-    backgroundColor: "#d9e7e9",
-  },
-  categoriesScroll: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 8,
-  },
-  chip: {
-    borderRadius: 20,
-    borderColor: "#34656e",
-    backgroundColor: "transparent",
-  },
-  chipSelected: {
-    backgroundColor: "#34656e",
-  },
-  chipText: {
-    color: "#34656e",
-    fontSize: 14,
-  },
-  chipTextSelected: {
-    color: "#ffffff",
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
+    marginTop: 100,
     alignItems: "center",
-    padding: 40,
+    paddingHorizontal: 40,
   },
   emptyText: {
     textAlign: "center",
     color: "#34656e",
-    opacity: 0.7,
+    opacity: 0.6,
+    fontSize: 16,
   },
 });
