@@ -116,7 +116,13 @@ export default function FeedScreen() {
               onPress={() =>
                 router.push({
                   pathname: "/article-details",
-                  params: { url: item.url, title: item.title },
+                  params: {
+                    url: item.url,
+                    title: item.title,
+                    description: item.description,
+                    image: item.image,
+                    source: item.source.name,
+                  },
                 })
               }
             />
