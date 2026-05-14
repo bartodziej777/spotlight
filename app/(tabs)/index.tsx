@@ -8,9 +8,9 @@ import {
   arrayUnion,
   doc,
   onSnapshot,
-  updateDoc,
+  setDoc,
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   RefreshControl,
@@ -48,6 +48,7 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // 1. Nasłuchiwanie zmian w Firebase (onSnapshot)
   useEffect(() => {
     if (!user) return;
 
@@ -55,6 +56,8 @@ export default function FeedScreen() {
     const unsubscribe = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         const userData = docSnap.data();
+        // Synchronizujemy stan tylko jeśli dane w bazie różnią się od lokalnych
+        // Zapobiega to zbędnym re-renderom przy "Optymistycznym UI"
         setCategories(userData.categories || []);
       }
     });
@@ -62,55 +65,76 @@ export default function FeedScreen() {
     return () => unsubscribe();
   }, [user]);
 
-  const loadNews = async (query: string) => {
+  // 2. Pobieranie wiadomości (używamy useCallback dla optymalizacji)
+  const loadNews = useCallback(async (query: string) => {
     if (!query) return;
-    setArticles([]);
     setLoading(true);
     const results = await fetchNews(query);
     setArticles(results || []);
     setLoading(false);
-  };
+  }, []);
 
-  const handleSaveSearch = async () => {
-    if (!searchQuery.trim() || !user) return;
+  // 3. Efekt reagujący TYLKO na zmianę wybranej kategorii
+  useEffect(() => {
+    if (selectedCategory) {
+      loadNews(selectedCategory);
+    }
+  }, [selectedCategory, loadNews]);
+
+  // 4. Funkcja zapisująca kategorię - Zastosowano Optymistyczne UI
+  const handleSaveCategory = async () => {
+    const newCat = searchQuery.trim();
+    if (!newCat || !user) return;
+
+    // AKTUALIZACJA OPTYMISTYCZNA: Zmieniamy UI zanim Firebase odpowie
+    setCategories((prev) => (prev.includes(newCat) ? prev : [...prev, newCat]));
+    setSelectedCategory(newCat);
+    setSearchQuery("");
 
     try {
       const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        categories: arrayUnion(searchQuery.trim()),
-      });
-      const newCat = searchQuery.trim();
-      setSelectedCategory(newCat);
-      setSearchQuery("");
-      loadNews(newCat);
+      await setDoc(
+        userRef,
+        {
+          categories: arrayUnion(newCat),
+        },
+        { merge: true },
+      );
     } catch (error) {
-      console.error("Błąd podczas zapisywania kategorii:", error);
+      console.error("Błąd zapisu:", error);
+      // W razie błędu usuwamy z UI
+      setCategories((prev) => prev.filter((c) => c !== newCat));
     }
   };
 
+  // 5. Funkcja usuwająca kategorię - Również optymistyczna
   const handleRemoveCategory = async (cat: string) => {
     if (!user) return;
 
+    // Usuwamy lokalnie natychmiast
+    setCategories((prev) => prev.filter((c) => c !== cat));
+    if (selectedCategory === cat) {
+      setSelectedCategory(null);
+      setArticles([]);
+    }
+
     try {
       const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        categories: arrayRemove(cat),
-      });
-
-      if (selectedCategory === cat) {
-        setSelectedCategory(null);
-        setArticles([]);
-      }
+      await setDoc(
+        userRef,
+        {
+          categories: arrayRemove(cat),
+        },
+        { merge: true },
+      );
     } catch (error) {
-      console.error("Błąd podczas usuwania kategorii:", error);
+      console.error("Błąd usuwania:", error);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    const query = selectedCategory || searchQuery || "Polska";
-    const results = await fetchNews(query);
-    setArticles(results || []);
+    await loadNews(selectedCategory || searchQuery || "Polska");
     setRefreshing(false);
   };
 
@@ -131,7 +155,7 @@ export default function FeedScreen() {
             <IconButton
               icon="plus-circle-outline"
               iconColor="#34656e"
-              onPress={handleSaveSearch}
+              onPress={handleSaveCategory}
             />
           ) : null
         }
@@ -148,9 +172,10 @@ export default function FeedScreen() {
               key={cat}
               selected={selectedCategory === cat}
               onPress={() => {
-                setSelectedCategory(cat);
-                setSearchQuery("");
-                loadNews(cat);
+                if (selectedCategory !== cat) {
+                  setSelectedCategory(cat);
+                  setSearchQuery("");
+                }
               }}
               onClose={() => handleRemoveCategory(cat)}
               style={[
@@ -170,12 +195,12 @@ export default function FeedScreen() {
         </ScrollView>
       </View>
 
-      {loading ? (
+      {loading && articles.length === 0 ? (
         <ActivityIndicator style={styles.loader} color="#34656e" size="large" />
       ) : (
         <FlatList
           data={articles}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(item, index) => item.url + index}
           renderItem={({ item }) => (
             <ArticleCard
               article={item}
@@ -194,13 +219,15 @@ export default function FeedScreen() {
             />
           )}
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {searchQuery || selectedCategory
-                  ? "Brak wyników dla tego hasła."
-                  : "Wybierz kategorię powyżej lub dodaj własną, aby zacząć."}
-              </Text>
-            </View>
+            !loading ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {searchQuery || selectedCategory
+                    ? "Brak wyników dla tego hasła."
+                    : "Wybierz kategorię powyżej lub dodaj własną, aby zacząć."}
+                </Text>
+              </View>
+            ) : null
           }
           refreshControl={
             <RefreshControl
