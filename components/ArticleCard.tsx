@@ -25,7 +25,6 @@ export default function ArticleCard({ article, onPress }: Props) {
   const [saved, setSaved] = useState(false);
   const date = new Date(article.publishedAt).toLocaleDateString("pl-PL");
 
-  // Sprawdzamy przy załadowaniu karty, czy artykuł jest już zapisany
   useEffect(() => {
     async function checkStatus() {
       if (user) {
@@ -39,9 +38,8 @@ export default function ArticleCard({ article, onPress }: Props) {
   const handleSavePress = async () => {
     if (!user) return;
 
-    // Zapisujemy stary stan, żeby wiedzieć co zrobić w bazie
     const wasSaved = saved;
-    setSaved(!wasSaved); // Zmiana wizualna w UI
+    setSaved(!wasSaved);
 
     await toggleSaveArticle(user.uid, article, wasSaved);
   };
@@ -81,7 +79,6 @@ export default function ArticleCard({ article, onPress }: Props) {
           </Text>
 
           <View style={styles.footer}>
-            {/* Zmieniono na IconButton dla lepszej interakcji */}
             <IconButton
               icon={saved ? "bookmark" : "bookmark-outline"}
               iconColor="#34656e"

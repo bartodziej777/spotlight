@@ -7,7 +7,6 @@ import React, { useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Text } from "react-native-paper";
 
-// Definiujemy interfejs danych pobieranych z bazy
 interface SavedArticle {
   title: string;
   description: string;
@@ -29,7 +28,6 @@ export default function SavedArticlesScreen() {
       return;
     }
 
-    // Nasłuchiwanie zmian w dokumencie użytkownika w czasie rzeczywistym
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(
       userRef,
@@ -37,7 +35,6 @@ export default function SavedArticlesScreen() {
         if (docSnap.exists()) {
           const data = docSnap.data();
           const articles = data.savedArticles || [];
-          // Odwracamy kolejność, aby najnowsze zapisy były na górze
           setSavedArticles([...articles].reverse());
         }
         setLoading(false);
@@ -65,12 +62,9 @@ export default function SavedArticlesScreen() {
         data={savedArticles}
         keyExtractor={(item, index) => (item.url || index.toString()) + index}
         renderItem={({ item }) => {
-          // Dostosowujemy obiekt SavedArticle do formatu oczekiwanego przez ArticleCard
           const formattedArticle = {
             ...item,
-            // Gwarantujemy, że publishedAt jest stringiem (wymagane przez ArticleCard)
             publishedAt: item.publishedAt || new Date().toISOString(),
-            // Mapujemy string source z bazy na obiekt { name: string }
             source: { name: item.source },
           };
 

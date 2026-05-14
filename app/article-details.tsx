@@ -26,7 +26,6 @@ export default function ArticlePreviewScreen() {
   const [comment, setComment] = useState("");
   const [isSaved, setIsSaved] = useState(false);
 
-  // Sprawdzanie statusu zapisu przy wejściu na ekran
   useEffect(() => {
     async function checkStatus() {
       if (user && url) {
@@ -40,15 +39,13 @@ export default function ArticlePreviewScreen() {
   const handleToggleSave = async () => {
     if (!user) return;
 
-    // Optymistyczna zmiana w UI
     const newStatus = !isSaved;
     setIsSaved(newStatus);
 
-    // Zapis/Usunięcie w Firebase
     await toggleSaveArticle(
       user.uid,
       { url, title, description, image, source },
-      isSaved, // Jeśli isSaved było true, toggleSaveArticle usunie obiekt
+      isSaved,
     );
   };
 
@@ -58,7 +55,6 @@ export default function ArticlePreviewScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Pływające przyciski akcji */}
       <View style={styles.headerButtons}>
         <IconButton
           icon="arrow-left"
@@ -125,7 +121,6 @@ export default function ArticlePreviewScreen() {
         </View>
       </ScrollView>
 
-      {/* Panel wpisywania komentarza */}
       <View style={styles.inputContainer}>
         <TextInput
           mode="outlined"

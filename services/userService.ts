@@ -94,3 +94,16 @@ export const toggleFavoriteSearch = async (
     console.error("Błąd podczas aktualizacji haseł:", error);
   }
 };
+
+export const addCategory = async (userId: string, category: string) => {
+  const userRef = doc(db, "users", userId);
+  try {
+    await updateDoc(userRef, {
+      categories: arrayUnion(category),
+    });
+    return true;
+  } catch (error) {
+    console.error("Błąd podczas dodawania kategorii:", error);
+    return false;
+  }
+};

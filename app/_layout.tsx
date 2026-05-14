@@ -15,10 +15,8 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
 
     if (!user && !inAuthGroup) {
-      // Jeśli nie ma użytkownika i nie jesteśmy w grupie logowania -> idź do logowania
       router.replace("/login");
     } else if (user && inAuthGroup) {
-      // Jeśli użytkownik się zalogował, a jest na logowaniu -> idź do aplikacji
       router.replace("/");
     }
   }, [user, isLoading, segments]);

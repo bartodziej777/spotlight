@@ -1,8 +1,15 @@
 import ArticleCard from "@/components/ArticleCard";
 import { useAuth } from "@/context/AuthContext";
+import { db } from "@/services/firebase";
 import { fetchNews } from "@/services/newsApi";
-import { getUserCategories } from "@/services/userService";
 import { useRouter } from "expo-router";
+import {
+  arrayRemove,
+  arrayUnion,
+  doc,
+  onSnapshot,
+  updateDoc,
+} from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
   FlatList,
@@ -11,7 +18,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { ActivityIndicator, Chip, Searchbar, Text } from "react-native-paper";
+import {
+  ActivityIndicator,
+  Chip,
+  IconButton,
+  Searchbar,
+  Text,
+} from "react-native-paper";
 
 interface GNewsArticle {
   title: string;
@@ -36,9 +49,17 @@ export default function FeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      getUserCategories(user.uid).then(setCategories);
-    }
+    if (!user) return;
+
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        setCategories(userData.categories || []);
+      }
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   const loadNews = async (query: string) => {
@@ -46,22 +67,57 @@ export default function FeedScreen() {
     setArticles([]);
     setLoading(true);
     const results = await fetchNews(query);
-    setArticles(results);
+    setArticles(results || []);
     setLoading(false);
+  };
+
+  const handleSaveSearch = async () => {
+    if (!searchQuery.trim() || !user) return;
+
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        categories: arrayUnion(searchQuery.trim()),
+      });
+      const newCat = searchQuery.trim();
+      setSelectedCategory(newCat);
+      setSearchQuery("");
+      loadNews(newCat);
+    } catch (error) {
+      console.error("Błąd podczas zapisywania kategorii:", error);
+    }
+  };
+
+  const handleRemoveCategory = async (cat: string) => {
+    if (!user) return;
+
+    try {
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        categories: arrayRemove(cat),
+      });
+
+      if (selectedCategory === cat) {
+        setSelectedCategory(null);
+        setArticles([]);
+      }
+    } catch (error) {
+      console.error("Błąd podczas usuwania kategorii:", error);
+    }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
     const query = selectedCategory || searchQuery || "Polska";
     const results = await fetchNews(query);
-    setArticles(results);
+    setArticles(results || []);
     setRefreshing(false);
   };
 
   return (
     <View style={styles.container}>
       <Searchbar
-        placeholder="Wpisz hasło..."
+        placeholder="Wyszukaj temat..."
         onChangeText={setSearchQuery}
         value={searchQuery}
         onSubmitEditing={() => {
@@ -70,9 +126,18 @@ export default function FeedScreen() {
         }}
         style={styles.searchBar}
         elevation={0}
+        right={() =>
+          searchQuery.length > 0 ? (
+            <IconButton
+              icon="plus-circle-outline"
+              iconColor="#34656e"
+              onPress={handleSaveSearch}
+            />
+          ) : null
+        }
       />
 
-      <View>
+      <View style={styles.categoriesWrapper}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -84,9 +149,10 @@ export default function FeedScreen() {
               selected={selectedCategory === cat}
               onPress={() => {
                 setSelectedCategory(cat);
-                setSearchQuery(""); // Czyścimy searchbar
+                setSearchQuery("");
                 loadNews(cat);
               }}
+              onClose={() => handleRemoveCategory(cat)}
               style={[
                 styles.chip,
                 selectedCategory === cat && styles.chipSelected,
@@ -132,7 +198,7 @@ export default function FeedScreen() {
               <Text style={styles.emptyText}>
                 {searchQuery || selectedCategory
                   ? "Brak wyników dla tego hasła."
-                  : "Wybierz kategorię powyżej, aby zacząć."}
+                  : "Wybierz kategorię powyżej lub dodaj własną, aby zacząć."}
               </Text>
             </View>
           }
@@ -152,14 +218,43 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#effafb" },
-  searchBar: { margin: 16, borderRadius: 28, backgroundColor: "#d9e7e9" },
-  categoriesScroll: { paddingHorizontal: 16, paddingBottom: 16, gap: 8 },
-  chip: { borderRadius: 20, borderColor: "#34656e" },
-  chipSelected: { backgroundColor: "#34656e" },
-  chipText: { color: "#34656e" },
-  chipTextSelected: { color: "#ffffff" },
-  loader: { flex: 1, justifyContent: "center" },
-  listContent: { paddingBottom: 20 },
+  searchBar: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 28,
+    backgroundColor: "#d9e7e9",
+  },
+  categoriesWrapper: {
+    height: 60,
+    justifyContent: "center",
+  },
+  categoriesScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: "center",
+  },
+  chip: {
+    borderRadius: 20,
+    borderColor: "#34656e",
+    backgroundColor: "#ffffff",
+  },
+  chipSelected: {
+    backgroundColor: "#34656e",
+  },
+  chipText: {
+    color: "#34656e",
+  },
+  chipTextSelected: {
+    color: "#ffffff",
+  },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
   emptyContainer: {
     flex: 1,
     marginTop: 100,
