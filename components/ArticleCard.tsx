@@ -1,8 +1,8 @@
-import { useAuth } from "@/context/AuthContext"; // Import autoryzacji
-import { isArticleSaved, toggleSaveArticle } from "@/services/userService"; // Import funkcji bazy danych
+import { useAuth } from "@/context/AuthContext"; // Import
+import { isArticleSaved, toggleSaveArticle } from "@/services/userService";
 import React, { useEffect, useState } from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
-import { IconButton, Surface, Text } from "react-native-paper";
+import { IconButton, Surface, Text, useTheme } from "react-native-paper";
 
 interface Article {
   title: string;
@@ -22,6 +22,7 @@ interface Props {
 
 export default function ArticleCard({ article, onPress }: Props) {
   const { user } = useAuth();
+  const theme = useTheme();
   const [saved, setSaved] = useState(false);
   const date = new Date(article.publishedAt).toLocaleDateString("pl-PL");
 
@@ -46,33 +47,49 @@ export default function ArticleCard({ article, onPress }: Props) {
 
   return (
     <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
-      <Surface style={styles.card} elevation={1}>
+      <Surface
+        style={[styles.card, { backgroundColor: theme.colors.surface }]}
+        elevation={1}
+      >
         <Image
           source={{
             uri:
               article.image ||
               "https://via.placeholder.com/400x200?text=Brak+zdjęcia",
           }}
-          style={styles.image}
+          style={[styles.image, { backgroundColor: theme.colors.background }]}
         />
 
         <View style={styles.content}>
           <View style={styles.header}>
-            <Text variant="labelMedium" style={styles.sourceName}>
+            <Text
+              variant="labelMedium"
+              style={[styles.sourceName, { color: theme.colors.primary }]}
+            >
               {article.source.name.toUpperCase()}
             </Text>
-            <Text variant="labelSmall" style={styles.date}>
+            <Text
+              variant="labelSmall"
+              style={[styles.date, { color: theme.colors.onSurfaceVariant }]}
+            >
               {date}
             </Text>
           </View>
 
-          <Text variant="titleMedium" style={styles.title} numberOfLines={2}>
+          <Text
+            variant="titleMedium"
+            style={[styles.title, { color: theme.colors.onSurface }]}
+            numberOfLines={2}
+          >
             {article.title}
           </Text>
 
           <Text
             variant="bodySmall"
-            style={styles.description}
+            style={[
+              styles.description,
+              { color: theme.colors.onSurfaceVariant },
+            ]}
             numberOfLines={2}
           >
             {article.description}
@@ -81,7 +98,7 @@ export default function ArticleCard({ article, onPress }: Props) {
           <View style={styles.footer}>
             <IconButton
               icon={saved ? "bookmark" : "bookmark-outline"}
-              iconColor="#34656e"
+              iconColor={theme.colors.primary}
               size={24}
               style={{ margin: 0 }}
               onPress={handleSavePress}
@@ -94,15 +111,13 @@ export default function ArticleCard({ article, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  // ... Twoje style pozostają bez zmian
   card: {
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 24,
-    backgroundColor: "#ffffff",
     overflow: "hidden",
   },
-  image: { width: "100%", height: 180, backgroundColor: "#d9e7e9" },
+  image: { width: "100%", height: 180 },
   content: { padding: 16 },
   header: {
     flexDirection: "row",
@@ -110,14 +125,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  sourceName: { color: "#006494", fontWeight: "bold", letterSpacing: 1 },
-  date: { color: "#666" },
+  sourceName: { fontWeight: "bold", letterSpacing: 1 },
+  date: { opacity: 0.8 },
   title: {
-    color: "#34656e",
     fontWeight: "bold",
     lineHeight: 22,
     marginBottom: 6,
   },
-  description: { color: "#555", lineHeight: 18 },
+  description: { lineHeight: 18, opacity: 0.9 },
   footer: { flexDirection: "row", justifyContent: "flex-end", marginTop: 0 },
 });

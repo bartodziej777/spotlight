@@ -1,12 +1,16 @@
+import { useAppTheme } from "@/context/ThemeContext";
 import { authService } from "@/services/auth";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Appbar, Menu } from "react-native-paper";
+import { Appbar, Menu, useTheme } from "react-native-paper";
 
 export default function TabsLayout() {
   const [visible, setVisible] = useState(false);
   const router = useRouter();
+
+  const { isDarkMode, toggleTheme } = useAppTheme();
+  const theme = useTheme();
 
   const openMenu = () => setVisible(true);
   const closeMenu = () => setVisible(false);
@@ -14,11 +18,23 @@ export default function TabsLayout() {
   return (
     <>
       <Appbar.Header
-        style={{ backgroundColor: "#effafb", justifyContent: "space-between" }}
+        style={{
+          backgroundColor: theme.colors.surface,
+        }}
       >
         <Appbar.Content
           title="spotlight"
-          titleStyle={{ color: "#34656e", fontWeight: "bold", fontSize: 24 }}
+          titleStyle={{
+            color: theme.colors.primary,
+            fontWeight: "bold",
+            fontSize: 24,
+          }}
+        />
+
+        <Appbar.Action
+          icon={isDarkMode ? "weather-sunny" : "weather-night"}
+          color={theme.colors.primary}
+          onPress={toggleTheme}
         />
 
         <Menu
@@ -27,7 +43,7 @@ export default function TabsLayout() {
           anchor={
             <Appbar.Action
               icon="account-circle"
-              color="#34656e"
+              color={theme.colors.primary}
               onPress={openMenu}
             />
           }
@@ -54,9 +70,13 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: "#006494",
-          tabBarInactiveTintColor: "#707070",
-          tabBarStyle: { backgroundColor: "#ffffff" },
+          tabBarActiveTintColor: theme.colors.primary,
+          tabBarInactiveTintColor: isDarkMode ? "#aaaaaa" : "#707070",
+          tabBarStyle: {
+            backgroundColor: theme.colors.surface,
+            borderTopWidth: isDarkMode ? 0 : 1,
+            borderColor: theme.colors.outline,
+          },
         }}
       >
         <Tabs.Screen

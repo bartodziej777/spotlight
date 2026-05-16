@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { doc, onSnapshot } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import { ActivityIndicator, Text } from "react-native-paper";
+import { ActivityIndicator, Text, useTheme } from "react-native-paper";
 
 interface SavedArticle {
   title: string;
@@ -19,6 +19,7 @@ interface SavedArticle {
 export default function SavedArticlesScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const theme = useTheme();
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,14 +51,18 @@ export default function SavedArticlesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color="#34656e" size="large" />
+      <View
+        style={[styles.center, { backgroundColor: theme.colors.background }]}
+      >
+        <ActivityIndicator color={theme.colors.primary} size="large" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <FlatList
         data={savedArticles}
         keyExtractor={(item, index) => (item.url || index.toString()) + index}
@@ -88,10 +93,19 @@ export default function SavedArticlesScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text variant="titleMedium" style={styles.emptyTitle}>
+            <Text
+              variant="titleMedium"
+              style={[styles.emptyTitle, { color: theme.colors.onBackground }]}
+            >
               Brak zapisanych artykułów
             </Text>
-            <Text variant="bodySmall" style={styles.emptySub}>
+            <Text
+              variant="bodySmall"
+              style={[
+                styles.emptySub,
+                { color: theme.colors.onBackground, opacity: 0.6 },
+              ]}
+            >
               Artykuły, które zapiszesz ikoną zakładki, pojawią się tutaj.
             </Text>
           </View>
@@ -105,13 +119,11 @@ export default function SavedArticlesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#effafb",
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#effafb",
   },
   listContent: {
     paddingVertical: 16,
@@ -123,13 +135,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   emptyTitle: {
-    color: "#34656e",
     fontWeight: "bold",
   },
   emptySub: {
     textAlign: "center",
-    color: "#34656e",
-    opacity: 0.6,
     marginTop: 8,
   },
 });

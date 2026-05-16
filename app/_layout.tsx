@@ -1,5 +1,6 @@
-import { theme } from "@/constants/theme";
+import { ThemeProvider, useAppTheme } from "@/context/ThemeContext";
 import { Slot, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { PaperProvider } from "react-native-paper";
 import { AuthProvider, useAuth } from "../context/AuthContext";
@@ -23,13 +24,23 @@ function RootLayoutNav() {
 
   return <Slot />;
 }
+function MainAppStructure() {
+  const { theme, isDarkMode } = useAppTheme();
+
+  return (
+    <PaperProvider theme={theme}>
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      <RootLayoutNav />
+    </PaperProvider>
+  );
+}
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <PaperProvider theme={theme}>
-        <RootLayoutNav />
-      </PaperProvider>
+      <ThemeProvider>
+        <MainAppStructure />
+      </ThemeProvider>
     </AuthProvider>
   );
 }

@@ -54,13 +54,11 @@ export const toggleSaveArticle = async (
     const savedArticles = userData.savedArticles || [];
 
     if (isCurrentlySaved) {
-      // USUWANIE: Filtrujemy tablicę po URL (najbezpieczniejsza metoda)
       const updatedArticles = savedArticles.filter(
         (a: any) => a.url !== article.url,
       );
       await updateDoc(userRef, { savedArticles: updatedArticles });
     } else {
-      // DODAWANIE: Czyścimy obiekt, żeby nie wysłać "undefined"
       const articleToSave = {
         url: article.url || "",
         title: article.title || "",
@@ -79,7 +77,6 @@ export const toggleSaveArticle = async (
   }
 };
 
-// Dodawanie/Usuwanie ulubionego hasła
 export const toggleFavoriteSearch = async (
   userId: string,
   query: string,

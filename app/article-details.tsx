@@ -32,6 +32,7 @@ import {
   IconButton,
   Text,
   TextInput,
+  useTheme,
 } from "react-native-paper";
 
 interface Comment {
@@ -46,6 +47,7 @@ interface Comment {
 export default function ArticlePreviewScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const theme = useTheme();
 
   const { url, title, description, image, source } = useLocalSearchParams<{
     url: string;
@@ -70,11 +72,9 @@ export default function ArticlePreviewScreen() {
     checkStatus();
   }, [user, url]);
 
-  // 1. Pobieranie komentarzy - Sortujemy lokalnie, aby uniknąć problemów z Firebase
   useEffect(() => {
     if (!url) return;
 
-    // Usunięcie orderBy("createdAt") rozwiązuje problem "znikających" komentarzy bez daty
     const q = query(collection(db, "comments"), where("articleUrl", "==", url));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -83,7 +83,6 @@ export default function ArticlePreviewScreen() {
         ...doc.data(),
       })) as Comment[];
 
-      // Ręczne sortowanie po dacie (najnowsze na górze)
       const sorted = fetchedComments.sort((a, b) => {
         const timeA = a.createdAt?.seconds || Date.now() / 1000;
         const timeB = b.createdAt?.seconds || Date.now() / 1000;
@@ -97,14 +96,12 @@ export default function ArticlePreviewScreen() {
     return () => unsubscribe();
   }, [url]);
 
-  // 2. Wysyłanie komentarza - Optymistyczne dodanie do listy
   const handleSendComment = async () => {
     if (!user || !commentText.trim()) return;
 
     const textToSend = commentText.trim();
     const tempId = Math.random().toString(36).substring(7);
 
-    // Tworzymy obiekt komentarza "na teraz"
     const newLocalComment: Comment = {
       id: tempId,
       text: textToSend,
@@ -114,7 +111,6 @@ export default function ArticlePreviewScreen() {
       likes: [],
     };
 
-    // Dodajemy go do listy natychmiast, żeby użytkownik go widział
     setComments((prev) => [newLocalComment, ...prev]);
     setCommentText("");
 
@@ -129,7 +125,6 @@ export default function ArticlePreviewScreen() {
       });
     } catch (error) {
       console.error("Błąd zapisu:", error);
-      // W razie błędu usuwamy go z listy i przywracamy tekst
       setComments((prev) => prev.filter((c) => c.id !== tempId));
       setCommentText(textToSend);
     }
@@ -166,22 +161,25 @@ export default function ArticlePreviewScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
-      <View style={styles.container}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <View style={styles.headerButtons}>
           <IconButton
             icon="arrow-left"
             mode="contained"
-            containerColor="rgba(255,255,255,0.9)"
-            iconColor="#34656e"
+            containerColor={theme.colors.surface}
+            iconColor={theme.colors.primary}
             onPress={() => router.back()}
           />
           <IconButton
             icon={isSaved ? "bookmark" : "bookmark-outline"}
             mode="contained"
-            containerColor={isSaved ? "#34656e" : "rgba(255,255,255,0.9)"}
-            iconColor={isSaved ? "#ffffff" : "#34656e"}
+            containerColor={
+              isSaved ? theme.colors.primary : theme.colors.surface
+            }
+            iconColor={isSaved ? theme.colors.onPrimary : theme.colors.primary}
             onPress={handleToggleSave}
           />
         </View>
@@ -193,35 +191,64 @@ export default function ArticlePreviewScreen() {
             resizeMode="cover"
           />
 
-          <View style={styles.content}>
-            <Text variant="labelLarge" style={styles.sourceText}>
+          <View
+            style={[
+              styles.content,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <Text
+              variant="labelLarge"
+              style={[styles.sourceText, { color: theme.colors.primary }]}
+            >
               {source?.toUpperCase()}
             </Text>
-            <Text variant="headlineSmall" style={styles.title}>
+            <Text
+              variant="headlineSmall"
+              style={[styles.title, { color: theme.colors.onSurface }]}
+            >
               {title}
             </Text>
-            <Text variant="bodyMedium" style={styles.description}>
+            <Text
+              variant="bodyMedium"
+              style={[
+                styles.description,
+                { color: theme.colors.onSurfaceVariant },
+              ]}
+            >
               {description}
             </Text>
 
             <Button
               mode="contained"
               onPress={() => url && Linking.openURL(url)}
-              style={styles.readMoreButton}
+              style={[
+                styles.readMoreButton,
+                { backgroundColor: theme.colors.primary },
+              ]}
+              labelStyle={{ color: theme.colors.onPrimary }}
               contentStyle={{ height: 50 }}
             >
               Czytaj Pełny Artykuł
             </Button>
 
-            <Divider style={styles.divider} />
+            <Divider
+              style={[
+                styles.divider,
+                { backgroundColor: theme.colors.outline },
+              ]}
+            />
 
-            <Text variant="titleLarge" style={styles.commentsTitle}>
+            <Text
+              variant="titleLarge"
+              style={[styles.commentsTitle, { color: theme.colors.onSurface }]}
+            >
               Komentarze ({comments.length})
             </Text>
 
             {loadingComments ? (
               <ActivityIndicator
-                color="#34656e"
+                color={theme.colors.primary}
                 style={{ marginVertical: 20 }}
               />
             ) : comments.length === 0 ? (
@@ -229,24 +256,48 @@ export default function ArticlePreviewScreen() {
                 <IconButton
                   icon="comment-off-outline"
                   size={30}
-                  iconColor="#ccc"
+                  iconColor={theme.colors.outline}
                 />
-                <Text style={styles.emptyText}>
+                <Text
+                  style={[
+                    styles.emptyText,
+                    { color: theme.colors.onSurfaceVariant },
+                  ]}
+                >
                   Brak komentarzy. Bądź pierwszy!
                 </Text>
               </View>
             ) : (
               comments.map((item) => (
-                <View key={item.id} style={styles.commentItem}>
+                <View
+                  key={item.id}
+                  style={[
+                    styles.commentItem,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
                   <Avatar.Text
                     size={36}
                     label={(item.userEmail || "A")[0].toUpperCase()}
+                    style={{ backgroundColor: theme.colors.primaryContainer }}
+                    labelStyle={{ color: theme.colors.onPrimaryContainer }}
                   />
                   <View style={styles.commentTextContainer}>
-                    <Text variant="labelMedium" style={styles.commentUser}>
+                    <Text
+                      variant="labelMedium"
+                      style={[
+                        styles.commentUser,
+                        { color: theme.colors.primary },
+                      ]}
+                    >
                       {item.userEmail}
                     </Text>
-                    <Text variant="bodySmall">{item.text}</Text>
+                    <Text
+                      variant="bodySmall"
+                      style={{ color: theme.colors.onSurface }}
+                    >
+                      {item.text}
+                    </Text>
                   </View>
                   <View style={styles.likesContainer}>
                     <IconButton
@@ -258,12 +309,18 @@ export default function ArticlePreviewScreen() {
                       iconColor={
                         (item.likes || []).includes(user?.uid || "")
                           ? "#e91e63"
-                          : "#34656e"
+                          : theme.colors.primary
                       }
                       size={20}
                       onPress={() => handleToggleLike(item.id, item.likes)}
                     />
-                    <Text variant="labelSmall" style={styles.likesCount}>
+                    <Text
+                      variant="labelSmall"
+                      style={[
+                        styles.likesCount,
+                        { color: theme.colors.onSurfaceVariant },
+                      ]}
+                    >
                       {(item.likes || []).length}
                     </Text>
                   </View>
@@ -274,14 +331,27 @@ export default function ArticlePreviewScreen() {
           </View>
         </ScrollView>
 
-        <View style={styles.inputContainer}>
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.outline,
+            },
+          ]}
+        >
           <TextInput
             mode="outlined"
             placeholder="Dodaj komentarz..."
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+            textColor={theme.colors.onSurface}
             value={commentText}
             onChangeText={setCommentText}
-            style={styles.input}
-            outlineStyle={{ borderRadius: 25 }}
+            style={[styles.input, { backgroundColor: theme.colors.surface }]}
+            outlineStyle={{
+              borderRadius: 25,
+              borderColor: theme.colors.outline,
+            }}
             onSubmitEditing={handleSendComment}
             returnKeyType="send"
             right={
@@ -289,7 +359,11 @@ export default function ArticlePreviewScreen() {
                 icon="send"
                 disabled={!commentText.trim()}
                 onPress={handleSendComment}
-                color={commentText.trim() ? "#34656e" : "#ccc"}
+                color={
+                  commentText.trim()
+                    ? theme.colors.primary
+                    : theme.colors.outline
+                }
               />
             }
           />
@@ -300,8 +374,8 @@ export default function ArticlePreviewScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#effafb" },
-  image: { width: "100%", height: 350, backgroundColor: "#ccc" },
+  container: { flex: 1 },
+  image: { width: "100%", height: 350 },
   headerButtons: {
     position: "absolute",
     top: 50,
@@ -316,49 +390,43 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     marginTop: -30,
-    backgroundColor: "#effafb",
     minHeight: 500,
   },
   sourceText: {
-    color: "#006494",
     marginBottom: 5,
     fontWeight: "bold",
     letterSpacing: 1,
   },
-  title: { color: "#34656e", fontWeight: "bold", marginBottom: 15 },
-  description: { color: "#555", lineHeight: 22, marginBottom: 25 },
-  readMoreButton: { borderRadius: 25, backgroundColor: "#34656e" },
+  title: { fontWeight: "bold", marginBottom: 15 },
+  description: { lineHeight: 22, marginBottom: 25 },
+  readMoreButton: { borderRadius: 25 },
   divider: { marginVertical: 25 },
-  commentsTitle: { color: "#34656e", fontWeight: "bold", marginBottom: 20 },
+  commentsTitle: { fontWeight: "bold", marginBottom: 20 },
   commentItem: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 15,
-    backgroundColor: "#fff",
     padding: 12,
     borderRadius: 15,
     elevation: 2,
   },
   commentTextContainer: { flex: 1, marginLeft: 12 },
   commentUser: {
-    color: "#34656e",
     fontWeight: "bold",
     fontSize: 13,
     marginBottom: 2,
   },
   likesContainer: { alignItems: "center", marginLeft: 5 },
-  likesCount: { marginTop: -10, color: "#34656e", fontSize: 11 },
+  likesCount: { marginTop: -10, fontSize: 11 },
   emptyContainer: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { color: "#aaa", fontSize: 14 },
+  emptyText: { fontSize: 14 },
   inputContainer: {
     padding: 10,
     paddingBottom: Platform.OS === "ios" ? 35 : 15,
-    backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderColor: "#e0e0e0",
     position: "absolute",
     bottom: 0,
     width: "100%",
   },
-  input: { backgroundColor: "#fff" },
+  input: { flex: 1 },
 });
