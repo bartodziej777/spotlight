@@ -3,7 +3,13 @@ import { useRouter } from "expo-router";
 import { sendPasswordResetEmail } from "firebase/auth";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, HelperText, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
 export default function ResetPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -11,6 +17,7 @@ export default function ResetPasswordScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const router = useRouter();
+  const theme = useTheme();
 
   const translateError = (code: string) => {
     switch (code) {
@@ -49,11 +56,16 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Text
+        variant="headlineMedium"
+        style={[styles.title, { color: theme.colors.primary }]}
+      >
         Resetuj hasło
       </Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
         Wpisz swój email, a wyślemy Ci instrukcje zmiany hasła.
       </Text>
 
@@ -65,12 +77,14 @@ export default function ResetPasswordScreen() {
           setErrorMsg(null);
         }}
         mode="outlined"
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        textColor={theme.colors.onSurface}
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+        outlineColor={theme.colors.outline}
+        activeOutlineColor={theme.colors.primary}
         keyboardType="email-address"
         autoCapitalize="none"
         error={!!errorMsg}
-        outlineColor="#006494"
-        activeOutlineColor="#006494"
       />
 
       <HelperText type="error" visible={!!errorMsg} style={styles.message}>
@@ -84,7 +98,8 @@ export default function ResetPasswordScreen() {
         onPress={handleReset}
         loading={loading}
         disabled={loading || !!successMsg}
-        style={styles.mainButton}
+        style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
+        labelStyle={{ color: theme.colors.onPrimary }}
       >
         Wyślij link
       </Button>
@@ -93,6 +108,7 @@ export default function ResetPasswordScreen() {
         mode="text"
         onPress={() => router.back()}
         style={styles.backButton}
+        labelStyle={{ color: theme.colors.primary }}
       >
         Wróć do logowania
       </Button>
@@ -105,15 +121,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: "center",
-    backgroundColor: "#effafb",
   },
   title: {
     textAlign: "center",
     marginBottom: 10,
-    color: "#34656e",
     fontWeight: "bold",
   },
-  subtitle: { textAlign: "center", marginBottom: 30, color: "#666" },
+  subtitle: { textAlign: "center", marginBottom: 30 },
   input: { marginBottom: 4 },
   message: { textAlign: "center", marginBottom: 8 },
   successText: {

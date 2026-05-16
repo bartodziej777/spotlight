@@ -1,6 +1,5 @@
 import { darkTheme, lightTheme } from "@/constants/theme";
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useColorScheme } from "react-native";
+import React, { createContext, useContext, useState } from "react"; // Usunąłem useEffect z importów, bo nie jest już potrzebny
 
 interface ThemeContextType {
   isDarkMode: boolean;
@@ -11,13 +10,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemColorScheme = useColorScheme();
-
-  const [isDarkMode, setIsDarkMode] = useState(systemColorScheme === "dark");
-
-  useEffect(() => {
-    setIsDarkMode(systemColorScheme === "dark");
-  }, [systemColorScheme]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const toggleTheme = () => {
     setIsDarkMode((prev) => !prev);

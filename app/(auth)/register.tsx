@@ -3,7 +3,13 @@ import { useRouter } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, HelperText, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState("");
@@ -12,6 +18,7 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
+  const theme = useTheme();
 
   const translateError = (code: string) => {
     switch (code) {
@@ -52,8 +59,13 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Text
+        variant="headlineMedium"
+        style={[styles.title, { color: theme.colors.primary }]}
+      >
         Stwórz konto
       </Text>
 
@@ -65,7 +77,11 @@ export default function RegisterScreen() {
           setErrorMsg(null);
         }}
         mode="outlined"
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        textColor={theme.colors.onSurface}
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+        outlineColor={theme.colors.outline}
+        activeOutlineColor={theme.colors.primary}
         keyboardType="email-address"
         autoCapitalize="none"
         error={!!errorMsg && errorMsg.includes("e-mail")}
@@ -80,7 +96,11 @@ export default function RegisterScreen() {
         }}
         mode="outlined"
         secureTextEntry
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        textColor={theme.colors.onSurface}
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+        outlineColor={theme.colors.outline}
+        activeOutlineColor={theme.colors.primary}
         error={!!errorMsg && errorMsg.includes("Hasło")}
       />
 
@@ -93,7 +113,11 @@ export default function RegisterScreen() {
         }}
         mode="outlined"
         secureTextEntry
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        textColor={theme.colors.onSurface}
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+        outlineColor={theme.colors.outline}
+        activeOutlineColor={theme.colors.primary}
         error={!!errorMsg && errorMsg.includes("identyczne")}
       />
 
@@ -105,7 +129,8 @@ export default function RegisterScreen() {
         mode="contained"
         onPress={handleRegister}
         loading={loading}
-        style={styles.mainButton}
+        style={[styles.mainButton, { backgroundColor: theme.colors.primary }]}
+        labelStyle={{ color: theme.colors.onPrimary }}
       >
         Zarejestruj się
       </Button>
@@ -114,6 +139,7 @@ export default function RegisterScreen() {
         mode="text"
         onPress={() => router.back()}
         rippleColor="transparent"
+        labelStyle={{ color: theme.colors.primary }}
       >
         Masz już konto? Zaloguj się
       </Button>
@@ -126,12 +152,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: "center",
-    backgroundColor: "#effafb",
   },
   title: {
     textAlign: "center",
     marginBottom: 30,
-    color: "#34656e",
     fontWeight: "bold",
   },
   input: { marginBottom: 4 },

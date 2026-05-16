@@ -3,7 +3,13 @@ import { useRouter } from "expo-router";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, HelperText, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -11,6 +17,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
+  const theme = useTheme();
 
   const translateError = (code: string) => {
     switch (code) {
@@ -46,8 +53,13 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineLarge" style={styles.title}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <Text
+        variant="headlineLarge"
+        style={[styles.title, { color: theme.colors.primary }]}
+      >
         Spotlight
       </Text>
 
@@ -59,10 +71,12 @@ export default function LoginScreen() {
           if (errorMsg) setErrorMsg(null);
         }}
         mode="outlined"
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        textColor={theme.colors.onSurface}
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+        outlineColor={theme.colors.outline}
+        activeOutlineColor={theme.colors.primary}
         keyboardType="email-address"
-        outlineColor="#006494"
-        activeOutlineColor="#006494"
         error={!!errorMsg}
       />
 
@@ -75,9 +89,11 @@ export default function LoginScreen() {
         }}
         mode="outlined"
         secureTextEntry
-        style={styles.input}
-        outlineColor="#34656e"
-        activeOutlineColor="#34656e"
+        style={[styles.input, { backgroundColor: theme.colors.surface }]}
+        textColor={theme.colors.onSurface}
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+        outlineColor={theme.colors.outline}
+        activeOutlineColor={theme.colors.primary}
         error={!!errorMsg}
       />
 
@@ -89,19 +105,26 @@ export default function LoginScreen() {
         mode="contained"
         onPress={handleLogin}
         loading={loading}
-        style={styles.button}
+        style={[styles.button, { backgroundColor: theme.colors.primary }]}
+        labelStyle={{ color: theme.colors.onPrimary }}
       >
         Zaloguj się
       </Button>
 
       <View style={styles.footer}>
-        <Button onPress={() => router.push("/register")}>
+        <Button
+          onPress={() => router.push("/register")}
+          labelStyle={{ color: theme.colors.primary }}
+        >
           Nie masz konta? Zarejestruj się
         </Button>
 
         <Button
           onPress={() => router.push("/reset-password")}
-          labelStyle={styles.forgotPass}
+          labelStyle={[
+            styles.forgotPass,
+            { color: theme.colors.onSurfaceVariant },
+          ]}
         >
           Zapomniałeś hasła?
         </Button>
@@ -115,12 +138,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: "center",
-    backgroundColor: "#effafb",
   },
   title: {
     textAlign: "center",
     marginBottom: 40,
-    color: "#34656e",
     fontWeight: "bold",
   },
   input: { marginBottom: 4 },
@@ -135,6 +156,5 @@ const styles = StyleSheet.create({
   },
   forgotPass: {
     fontSize: 12,
-    color: "#666",
   },
 });
